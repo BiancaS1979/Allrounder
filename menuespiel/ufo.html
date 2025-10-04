@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ufospiel</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+            background-color: black;
+        }
+
+        h1 {
+            margin-top: 30px;
+            color: aqua;
+
+        }
+
+        p {
+            font-size: 24px;
+            margin: 10px;
+            color: aqua;
+        }
+
+        button {
+            margin-top: 20px;
+            font-size: 16px;
+            padding: 10px 20px;
+            background-color: aqua;
+        }
+
+        .hole {
+          width: 100px;
+          height: 100px;
+          border: 2px solid magenta;  
+          font-size: 40px;
+          line-height: 100px;
+          cursor: pointer;
+          user-select: none;
+        }
+        
+        #gameBoard {
+            display: grid;
+            grid-template-columns: 100px 100px 100px;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        #Spielstand {
+            margin-top: 20px;
+            font-size: 20px;
+            color: aqua;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Ufo-Spiel 🛸</h1>
+
+    <p id="score">Punkte: 0</p>
+    <p id="timer">Zeit: 30s</p>
+
+    <div id="gameBoard">
+        <div class="hole" id="hole0" onclick="hit(0)"></div>
+        <div class="hole" id="hole1" onclick="hit(1)" ></div>
+        <div class="hole" id="hole2" onclick="hit(2)"></div>
+        <div class="hole" id="hole3" onclick="hit(3)"></div>
+        <div class="hole" id="hole4" onclick="hit(4)"></div>
+        <div class="hole" id="hole5" onclick="hit(5)"></div>
+        <div class="hole" id="hole6" onclick="hit(6)" ></div>
+        <div class="hole" id="hole7" onclick="hit(7)"></div>
+        <div class="hole" id="hole8" onclick="hit(8)"></div>
+    </div>
+
+    <div id="Spielstand"></div>
+
+    <button onclick="startGame()">Spiel starten</button>
+    <a href="menue.html"><button>Zurück zur Startseite</button></a>
+
+<script>
+    let currentUfo = -1;
+    let score = 0;
+    let timeLeft = 30;
+    let ufoInterval;
+    let timerInterval;
+
+    function startGame() {
+        score = 0;
+        timeLeft = 30;
+        currentUfo = -1;
+
+        document.getElementById("score").textContent = "Punkte: 0";
+        document.getElementById("timer").textContent = "Zeit: " + timeLeft + "s";
+        document.getElementById("Spielstand").textContent = "";
+
+        ufoInterval = setInterval(showUfo, 1000);
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function showUfo() {
+        if(currentUfo !== -1) {
+            document.getElementById("hole" + currentUfo).textContent = "";
+        }
+
+        currentUfo = Math.floor(Math.random() * 9);
+        document.getElementById("hole" + currentUfo).textContent = "🛸";
+    }
+
+    function hit(index) {
+        if(index === currentUfo) {
+            score = score + 1;
+            document.getElementById("hole" + currentUfo).textContent = "";
+            document.getElementById("score").textContent = "Punkte: " + score;
+            currentUfo = -1;
+        }
+    }
+
+    function updateTimer() {
+        timeLeft = timeLeft -1;
+        document.getElementById("timer").textContent = "Zeit: " + timeLeft + "s";
+
+        if(timeLeft <= 0) {
+            clearInterval(ufoInterval);
+            clearInterval(timerInterval);
+            document.getElementById("hole" + currentUfo).textContent = "";
+            currentUfo = -1;
+
+            document.getElementById("Spielstand").textContent = "Spiel vorbei. Du hast " + score + " Punkte erreicht.";
+        }
+    }
+
+</script>
+
+</body>
+</html>
+

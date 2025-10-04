@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GIF-Studio — Trim & Timeline</title>
+  <link rel="stylesheet" href="gifstudio.css" />
+</head>
+<body>
+  <header>
+    <h1>🎞️ GIF-Studio — Trim & Timeline (Blender-light)</h1>
+    <p>Hochladen → Frames bearbeiten → Start/End setzen → Vorschau → Export</p>
+  </header>
+  <div id="backBar">
+  <button onclick="window.location.href='../index.html'">⬅️ Zurück zum Allrounder</button>
+</div>
+
+
+  <!-- globale toolbar -->
+  <section id="globalTools">
+    <button onclick="rotateAll(90)">↻ Alles 90°</button>
+    <button onclick="flipAll('h')">↔ Alles horizontal</button>
+    <button onclick="flipAll('v')">↕ Alles vertikal</button>
+    <button onclick="generateGif()">🎬 Neue GIF-Vorschau (nur Range)</button>
+    <button onclick="playPreview()">▶️ Abspielen / ⏸️ Pause</button>
+    <label>Geschwindigkeit:
+      <input id="speedRange" type="range" min="50" max="500" value="120" step="10">
+    </label>
+    <button onclick="resetTrim()">🔁 Reset Trim</button>
+  </section>
+
+  <main>
+    <div class="left">
+      <div class="upload-box">
+        <input id="gifInput" type="file" accept="image/gif">
+        <button id="loadGifBtn">Zerlegen</button>
+      </div>
+
+      <div id="frameContainer" class="timeline"></div>
+    </div>
+
+    <div class="right">
+      <div id="framePreviewBox">
+        <h3>Ausgewähltes Frame</h3>
+        <canvas id="selectedPreview" width="240" height="160"></canvas>
+        <div class="frame-actions">
+          <button id="setStartBtn">Setze Start</button>
+          <button id="setEndBtn">Setze Ende</button>
+          <button id="rotateBtn">↻ 90°</button>
+          <button id="flipHBtn">↔ Spiegel H</button>
+          <button id="flipVBtn">↕ Spiegel V</button>
+          <button id="saveFrameBtn">💾 Speichern</button>
+          <button id="delFrameBtn">❌ Löschen</button>
+        </div>
+
+        <hr>
+
+        <h4>Marker (Keyframes)</h4>
+        <input id="markerLabel" placeholder="Label eingeben" />
+        <button id="addMarkerBtn">➕ Marker setzen</button>
+        <ul id="markerList"></ul>
+      </div>
+
+      <section id="previewSection" style="display:none;">
+        <h3>Vorschau</h3>
+        <div id="previewArea"></div>
+        <button id="downloadGifBtn" style="display:none">💾 GIF speichern</button>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>Allrounder GIF-Studio © 2025</p>
+  </footer>
+
+  <!-- libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gifuct-js/2.1.2/gifuct.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <script src="gifstudio.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+:root{
+  --bg:#000;
+  --panel:#111;
+  --aqua:#00ffff;
+  --magenta:#ff00ff;
+  --white:#fff;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--white);
+  font-family:Arial, sans-serif;
+}
+header{
+  padding:12px;
+  background:var(--panel);
+  border-bottom:3px solid var(--magenta);
+  color:var(--aqua);
+  text-align:center;
+}
+#globalTools{
+  padding:10px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  background:var(--panel);
+  border-bottom:2px solid var(--aqua);
+}
+button{
+  background:black;color:white;border:2px solid var(--aqua);padding:.35rem .6rem;border-radius:.5rem;cursor:pointer;
+}
+button:hover{background:var(--magenta);color:black}
+main{display:flex;gap:12px;padding:12px}
+.left{flex:1}
+.right{width:360px}
+.upload-box{background:var(--panel);padding:8px;border-radius:8px;border:2px solid var(--magenta);display:inline-block}
+.timeline{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.frame{width:140px;background:var(--panel);padding:6px;border-radius:8px;border:2px solid white}
+.frame canvas{width:100%;height:auto;border:1px solid var(--aqua);display:block;border-radius:6px}
+.tool-buttons{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.dragging{opacity:.5;border:2px dashed var(--magenta)}
+#framePreviewBox{background:var(--panel);padding:8px;border-radius:8px;border:2px solid var(--magenta)}
+.frame-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#markerList{list-style:none;padding:0;margin:6px 0}
+#markerList li{padding:4px 6px;border-radius:6px;background:#222;margin-bottom:6px}
+#previewArea img{max-width:100%;border-radius:8px;border:3px solid var(--magenta)}
+footer{padding:8px;text-align:center;color:#666}
+input[type="text"],input[type="file"],input[type="number"]{background:#222;color:var(--aqua);border:1px solid #444;padding:6px;border-radius:6px}
+label{color:var(--aqua)}
+
+#backBar {
+  text-align: center;
+  background: var(--panel);
+  padding: 8px;
+  border-bottom: 2px solid var(--magenta);
+}
+
+#backBar button {
+  background: black;
+  color: var(--aqua);
+  border: 2px solid var(--aqua);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+#backBar button:hover {
+  background: var(--magenta);
+  color: black;
+}

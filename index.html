@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allrounder Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+<style>
+  :root {
+    --aqua: #00ffff;
+    --magenta: #ff00ff;
+    --bg-dark: #000000;
+    --text-light: #ffffff;
+  }
+  body {
+    margin: 0; font-family: Arial, sans-serif;
+    background-color: var(--bg-dark); color: var(--text-light); overflow: hidden;
+  }
+  header {
+    padding: 1rem; text-align: center; font-size: 2rem; font-weight: bold;
+    background-color: var(--bg-dark); animation: colorShift 3s infinite alternate;
+  }
+  @keyframes colorShift { 0%{color:var(--magenta);}100%{color:var(--aqua);} }
+  main {
+    display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
+    gap: 1rem; padding: 1rem;
+  }
+  .module {
+    background: var(--bg-dark); border: 2px solid var(--magenta);
+    border-radius: 1rem; padding: 1.5rem; text-align: center;
+    cursor: pointer; color: var(--text-light);
+    transition: transform .2s, border-color .2s;
+  }
+  .module:hover { transform: scale(1.05); border-color: var(--aqua);}
+  .module span { display:block; font-size:2rem; color:var(--aqua); margin-bottom:.5rem;}
+  .window {
+    position:absolute; top:100px; left:100px; width:350px;
+    background:#111; border:2px solid var(--magenta); border-radius:.5rem;
+    resize:both; overflow:auto; display:none; z-index:10;
+  }
+  .window-header {
+    background:#000; color:var(--magenta); padding:.5rem; cursor:move; font-weight:bold;
+    border-bottom:1px solid var(--magenta); display:flex; justify-content:space-between; align-items:center;
+  }
+  .window-close {cursor:pointer;color:var(--aqua);font-weight:bold;}
+  .window-content { padding:.5rem; color:var(--text-light);}
+  input,button,textarea {
+    padding:.5rem; margin:.3rem .2rem; border-radius:.5rem; border:1px solid var(--magenta);
+    background:var(--bg-dark); color:var(--text-light);
+  }
+  button:hover{background:var(--magenta);color:var(--bg-dark);}
+  ul{list-style:none;padding:0;}
+  li{margin:.3rem 0;}
+  #toolbar{margin-bottom:.5rem;}
+  #toolbar button,#toolbar input{margin-right:.3rem;}
+  #calculatorWindow {
+  min-width: 300px;
+  padding: 10px;          /* Abstand innen */
+  box-sizing: border-box; /* verhindert Überlaufen */
+}
+#calcDisplay {
+  width: 100%;
+  margin-bottom: 0.5rem;  
+  padding: 0.5rem;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+#calcButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+#calcButtons button {
+  flex: 1 0 22%;
+  font-size: 1rem;
+  border: 1px solid var(--magenta);
+  border-radius: 0.5rem;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  padding: 0.5rem;
+}
+
+
+/* === 🎨 Notizblock Styling === */
+#noteWindow {
+  border: 2px solid white;
+  background: black;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 0 10px magenta;
+  width: 960px;
+  height: 720px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+}
+
+#noteWindow .window-header {
+  border-bottom: 2px solid magenta;
+  padding: 6px;
+  text-align: center;
+  font-weight: bold;
+  color: magenta;
+}
+
+.note-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.note-toolbar {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  background: black;
+  padding: 6px;
+  border-radius: 8px;
+  border: 2px solid white;
+}
+
+.note-toolbar button,
+.note-toolbar label,
+.note-toolbar input {
+  background: black;
+  color: aqua;
+  border: 1px solid white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.note-toolbar button:hover,
+.note-toolbar label:hover,
+.note-toolbar input:hover {
+  background: magenta;
+  color: black;
+}
+
+.note-toolbar input[type="color"],
+.note-toolbar input[type="number"],
+.note-toolbar input[type="range"] {
+  background: black;
+  color: aqua;
+  border: 1px solid white;
+  border-radius: 6px;
+}
+
+#noteCanvas {
+  border: 2px solid var(--aqua);
+  border-radius: 8px;
+  background: #fff;
+  cursor: crosshair;
+}
+
+#noteCanvas.text-mode { cursor: text; }
+#noteCanvas.move-text, #noteCanvas.move-image { cursor: move; }
+
+</style>
+</head>
+<body>
+<header>Mein Allrounder</header>
+<main>
+  <div class="module" onclick="openWindow('calendarWindow')"><span>📅</span>Kalender</div>
+  <div class="module" onclick="openWindow('clockWindow')"><span>⏰</span>Uhr & Timer</div>
+  <div class="module" onclick="openWindow('todoWindow')"><span>✅</span>To-Do</div>
+  <div class="module" onclick="openWindow('galleryWindow')"><span>🖼️</span>Galerie</div>
+  <div class="module" onclick="openWindow('chatWindowBox')"><span>💬</span>Chat</div>
+  <div class="module" onclick="openWindow('calculatorWindow')"><span>🧮</span>Rechner</div>
+  <div class="module" onclick="openWindow('noteWindow')"><span>🖊️</span>Notizblock</div>  
+  <div class="module" onclick="openWindow('gameWindow')"><span>🎮</span>Spiel</div>
+  <div class="module" onclick="openWindow('flashcardsWindow')"><span>📘</span>Karteikarten</div>
+  <div class="module" onclick="openWindow('botWindow')"><span>🤖</span>Chatbot "Missy"</div>
+  <div class="module" onclick="window.open('gifstudio/gifstudio.html','_blank')">
+  <span>🎞️</span>GIF-Studio
+</div>
+
+</main>
+
+
+<!-- Kalender -->
+<div id="calendarWindow" class="window">
+  <div class="window-header">
+    Kalender 
+    <span class="window-close" onclick="closeWindow('calendarWindow')">✖</span>
+  </div>
+  <div class="window-content">
+    <input type="date" id="eventDate">
+    <input type="text" id="eventText" placeholder="Termin eingeben">
+    <button onclick="addCalendarEvent()">Hinzufügen</button>
+    <ul id="eventList"></ul>
+  </div>
+</div>
+
+<!-- Uhr & Timer -->
+<div id="clockWindow" class="window">
+  <div class="window-header">
+    Uhr & Timer
+    <span class="window-close" onclick="closeWindow('clockWindow')">✖</span>
+  </div>
+  <div class="window-content">
+    <h3>Uhrzeit:</h3>
+    <div id="clockDisplay" style="font-size:1.5rem;margin-bottom:1rem;"></div>
+
+    <h3>Timer:</h3>
+    <label>Minuten: <input type="number" id="timerMinutes" min="0" value="0"></label>
+    <label>Sekunden: <input type="number" id="timerSeconds" min="0" value="10"></label>
+    <button onclick="startTimer()">Start</button>
+    <button onclick="stopTimer()">Stop</button>
+    <div id="timerDisplay" style="margin-top:1rem;font-size:1.2rem;"></div>
+    <audio id="beepSound" src="sounds/beep.mp3"></audio>
+  </div>
+</div>
+
+
+<!-- To-Do -->
+<div id="todoWindow" class="window">
+  <div class="window-header">To-Do <span class="window-close" onclick="closeWindow('todoWindow')">✖</span></div>
+  <div class="window-content">
+    <input type="text" id="todoInput" placeholder="Neue Aufgabe">
+    <button onclick="addTodo()">Hinzufügen</button>
+    <ul id="todoList"></ul>
+  </div>
+</div>
+
+<!-- Galerie -->
+<div id="galleryWindow" class="window">
+  <div class="window-header">Galerie <span class="window-close" onclick="closeWindow('galleryWindow')">✖</span></div>
+  <div class="window-content">
+    <input type="file" id="imageInput" accept="image/*" multiple>
+    <div id="galleryDisplay"></div>
+  </div>
+</div>
+
+<!-- Chat -->
+<div id="chatWindowBox" class="window">
+  <div class="window-header">Chat 
+    <span class="window-close" onclick="closeWindow('chatWindowBox')">✖</span>
+  </div>
+  <div class="window-content">
+    <label for="usernameInput">Dein Name:</label>
+    <input type="text" id="usernameInput" placeholder="z. B. Lisa">
+
+    <div id="chatWindow" style="border:1px solid var(--aqua);height:200px;overflow-y:auto;margin-bottom:.5rem;background:#111;"></div>
+
+    <input type="text" id="chatInput" placeholder="Nachricht eingeben">
+    <button onclick="sendMessage()">Senden</button>
+  </div>
+</div>
+
+<!-- Rechner -->
+<div id="calculatorWindow" class="window">
+  <div class="window-header">Rechner <span class="window-close" onclick="closeWindow('calculatorWindow')">✖</span></div>
+  <div class="window-content">
+    <input type="text" id="calcDisplay" readonly style="width:100%;text-align:right;margin-bottom:.5rem;">
+    <div id="calcButtons"></div>
+  </div>
+</div>
+
+<!-- Notizblock -->
+   <div id="noteWindow" class="window" style="display:none;">
+  <div class="window-header"><span>🖊️ Notizblock</span>
+     <button class="close-btn" onclick="closeWindow('noteWindow')">×</button>
+  </div>
+ <div class="note-container">
+    <div class="note-toolbar">
+      <!-- Werkzeuge -->
+      <button onclick="setTool('draw')">✏️ Zeichnen</button>
+      <button onclick="setTool('eraser')">🧽 Radierer</button>
+      <button onclick="setTool('text')">🔤 Text</button>
+      <button onclick="setTool('line')">📏 Linie</button>
+      <button onclick="setTool('rect')">⬛ Rechteck</button>
+      <button onclick="setTool('circle')">⚪ Kreis</button>
+      <button onclick="setTool('triangle')">🔺 Dreieck</button>
+      <button onclick="setTool('image')">🖼️ Bild</button>
+
+      <!-- Farben und Größen -->
+      <label>Farbe:
+        <input id="colorPicker" type="color" value="#00ffff">
+      </label>
+      <label>Stiftdicke:
+        <input id="sizePicker" type="range" min="1" max="60" value="4">
+      </label>
+      <label>Schriftgröße:
+        <input id="fontSizePicker" type="number" min="8" max="72" value="18" style="width:60px;">
+      </label>
+
+      <!-- Aktionen -->
+      <button onclick="undo()">↩️ Zurück</button>
+      <button onclick="redo()">↪️ Vorwärts</button>
+      <button onclick="clearCanvas()">🗑️ Löschen</button>
+
+      <!-- Export -->
+      <button onclick="saveAsPNG()">📷 PNG speichern</button>
+      <button onclick="saveAsPDF()">📄 PDF speichern</button>
+
+      <!-- Upload -->
+      <label style="margin-left:8px;cursor:pointer;">
+        📂 Bild hochladen
+        <input type="file" id="imageUpload" accept="image/*" onchange="uploadImage(event)" style="display:none;">
+      </label>
+    </div>
+
+    <canvas id="noteCanvas" width="900" height="600" style="border:2px solid var(--aqua);background:#fff;border-radius:8px;"></canvas>
+  </div>
+</div>
+
+
+<!-- >Chatbot Missy -->
+
+<div id="botWindow" class="window">
+  <div class="window-header">
+    Chatbot 
+    <span class="window-close" onclick="closeWindow('botWindow')">✖</span>
+  </div>
+  <div class="window-content">
+    <iframe src="chatbot/index.html" 
+            width="100%" height="500" 
+            style="border:none;border-radius:.5rem;"></iframe>
+  </div>
+</div>
+
+
+<!-- Spiel -->
+<div id="gameWindow" class="window">
+  <div class="window-header">Spiel <span class="window-close" onclick="closeWindow('gameWindow')">✖</span></div>
+  <div class="window-content">
+    <iframe src="menuespiel/menue.html" width="100%" height="800" style="border:none;border-radius:.5rem;"></iframe>
+  </div>
+</div>
+
+<!-- Karteikarten -->
+<div id="flashcardsWindow" class="window">
+  <div class="window-header">Karteikarten <span class="window-close" onclick="closeWindow('flashcardsWindow')">✖</span></div>
+  <div class="window-content">
+    <h3>Neue Karte hinzufügen</h3>
+    <input type="text" id="flashcardQuestion" placeholder="Frage">
+    <input type="text" id="flashcardAnswer" placeholder="Antwort">
+    <button onclick="addFlashcard()">Speichern</button>
+    <h3>Üben</h3>
+    <div id="flashcardArea" style="border:1px solid var(--aqua);padding:10px;border-radius:.5rem;min-height:80px;">
+      <em>Noch keine Karteikarten</em>
+    </div>
+    <button onclick="showAnswer()">Antwort anzeigen</button>
+    <div style="margin-top:.5rem;">
+      <button onclick="prevCard()">⬅ Zurück</button>
+      <button onclick="nextCard()">Weiter ➡</button>
+    </div>
+    <button onclick="deleteCard()">❌ Karte löschen</button>
+    <button onclick="editCard()">✏️ Bearbeiten</button>
+  </div>
+</div>
+<!-- http://localhost/allrounder/chat_admin.php in den adminbereich gehen-->
+
+
+<script>
+/* Fenster bewegen */
+function openWindow(id){const w=document.getElementById(id);w.style.display="block";bringToFront(w);}
+function closeWindow(id){document.getElementById(id).style.display="none";}
+document.querySelectorAll('.window').forEach(win=>{
+  const header=win.querySelector('.window-header');let ox=0,oy=0,isDown=false;
+  header.addEventListener('mousedown',e=>{isDown=true;ox=e.clientX-win.offsetLeft;oy=e.clientY-win.offsetTop;bringToFront(win);});
+  document.addEventListener('mouseup',()=>isDown=false);
+  document.addEventListener('mousemove',e=>{if(isDown){win.style.left=(e.clientX-ox)+'px';win.style.top=(e.clientY-oy)+'px';}});
+});
+function bringToFront(w){document.querySelectorAll('.window').forEach(el=>el.style.zIndex=10);w.style.zIndex=20;}
+
+/* Kalender mit LocalStorage */
+/* ======================
+   Kalender mit LocalStorage + Sortierung
+   ====================== */
+let events = JSON.parse(localStorage.getItem("events") || "[]");
+
+function renderEvents() {
+  const list = document.getElementById('eventList');
+  list.innerHTML = "";
+
+  // Sortierung nach Datum (aufsteigend)
+  events.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  events.forEach((ev, i) => {
+    const li = document.createElement('li');
+    li.textContent = ev.date + ": " + ev.text;
+
+    // Bearbeiten
+    const edit = document.createElement('button');
+    edit.textContent = "✏️";
+    edit.onclick = () => {
+      const nt = prompt("Neuer Text:", ev.text);
+      if (nt) {
+        events[i].text = nt;
+        saveEvents();
+      }
+    };
+
+    // Löschen
+    const del = document.createElement('button');
+    del.textContent = "❌";
+    del.onclick = () => {
+      if (confirm("Termin wirklich löschen?")) {
+        events.splice(i, 1);
+        saveEvents();
+      }
+    };
+
+    li.appendChild(edit);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+}
+
+function addCalendarEvent() {
+  const d = document.getElementById('eventDate').value;
+  const t = document.getElementById('eventText').value;
+  if (!d || !t) return alert("Bitte Datum und Termin eingeben!");
+  
+  events.push({date: d, text: t});
+  saveEvents();
+  document.getElementById('eventText').value = "";
+}
+
+function saveEvents() {
+  localStorage.setItem("events", JSON.stringify(events));
+  renderEvents();
+}
+
+// beim Laden gleich rendern
+renderEvents();
+
+/* ======================
+   Uhr & Timer
+   ====================== */
+function updateClock() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString("de-DE", { hour12: false });
+  document.getElementById("clockDisplay").textContent = timeStr;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+let timerInterval;
+function startTimer() {
+  let minutes = parseInt(document.getElementById("timerMinutes").value) || 0;
+  let seconds = parseInt(document.getElementById("timerSeconds").value) || 0;
+  let totalSeconds = minutes * 60 + seconds;
+
+  if (totalSeconds <= 0) {
+    alert("Bitte einen gültigen Wert eingeben!");
+    return;
+  }
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (totalSeconds <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById("timerDisplay").textContent = "⏰ Zeit abgelaufen!";
+      document.getElementById("beepSound").play();
+    } else {
+      totalSeconds--;
+      const min = Math.floor(totalSeconds / 60);
+      const sec = totalSeconds % 60;
+      document.getElementById("timerDisplay").textContent = 
+        `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  document.getElementById("timerDisplay").textContent = "Timer gestoppt.";
+}
+
+
+/* To-Do mit LocalStorage */
+let todos=JSON.parse(localStorage.getItem("todos")||"[]");
+function renderTodos(){const list=document.getElementById('todoList');list.innerHTML="";todos.forEach((td,i)=>{const li=document.createElement('li');const cb=document.createElement('input');cb.type="checkbox";cb.checked=td.done;cb.onchange=()=>{td.done=cb.checked;saveTodos();};const span=document.createElement('span');span.textContent=" "+td.text;span.onclick=()=>{const nt=prompt("Aufgabe bearbeiten:",td.text);if(nt){td.text=nt;saveTodos();}};const del=document.createElement('button');del.textContent="❌";del.onclick=()=>{todos.splice(i,1);saveTodos();};li.appendChild(cb);li.appendChild(span);li.appendChild(del);list.appendChild(li);});}
+function addTodo(){const val=document.getElementById('todoInput').value;if(!val)return;todos.push({text:val,done:false});saveTodos();document.getElementById('todoInput').value="";}
+function saveTodos(){localStorage.setItem("todos",JSON.stringify(todos));renderTodos();}
+renderTodos();
+
+/* Galerie temporär */
+document.getElementById('imageInput').addEventListener('change',e=>{
+  const files=e.target.files;const g=document.getElementById('galleryDisplay');g.innerHTML='';
+  for(let f of files){const r=new FileReader();r.onload=function(ev){const div=document.createElement('div');const img=document.createElement('img');img.src=ev.target.result;img.style.maxWidth="80px";img.style.margin="5px";const dl=document.createElement('a');dl.href=ev.target.result;dl.download="bild.png";dl.textContent="⬇";const pr=document.createElement('button');pr.textContent="🖨";pr.onclick=()=>{const w=window.open("");w.document.write("<img src='"+ev.target.result+"'/>");w.print();};div.appendChild(img);div.appendChild(dl);div.appendChild(pr);g.appendChild(div);};r.readAsDataURL(f);}});
+
+/* Rechner */
+/* === Rechner-Funktionalität === */
+const calcButtons = [
+  "7", "8", "9", "/", 
+  "4", "5", "6", "*", 
+  "1", "2", "3", "-", 
+  "0", ".", "=", "+", 
+  "C"
+];
+
+const calcContainer = document.getElementById("calcButtons");
+calcButtons.forEach(symbol => {
+  const btn = document.createElement("button");
+  btn.textContent = symbol;
+  btn.style.width = "22%";
+  btn.onclick = () => calcPress(symbol);
+  calcContainer.appendChild(btn);
+});
+
+function calcPress(value) {
+  const display = document.getElementById("calcDisplay");
+  if (value === "C") {
+    display.value = "";
+  } else if (value === "=") {
+    try {
+      display.value = eval(display.value || "0");
+    } catch {
+      display.value = "Fehler";
+    }
+  } else {
+    display.value += value;
+  }
+}
+
+
+// Notizblock
+
+(function() {
+  const canvas = document.getElementById("noteCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const colorPicker = document.getElementById("colorPicker");
+  const sizePicker = document.getElementById("sizePicker");
+  const fontSizePicker = document.getElementById("fontSizePicker");
+
+  let tool = "draw";
+  let drawing = false;
+  let startX = 0, startY = 0;
+  let fontSize = parseInt(fontSizePicker.value, 10);
+  let history = [], redoHistory = [];
+  let texts = [], images = [];
+  let selectedText = null, selectedImage = null;
+
+  // Werkzeuge wählen
+  window.setTool = function(t) {
+    tool = t;
+    canvas.classList.toggle("text-mode", t === "text");
+  };
+
+  // Schriftgröße ändern
+  fontSizePicker.addEventListener("input", e => fontSize = parseInt(e.target.value, 10) || 18);
+
+  // Zeichnen vorbereiten
+  function applyPen() {
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = parseInt(sizePicker.value, 10);
+    ctx.strokeStyle = colorPicker.value;
+  }
+
+  // State sichern
+  function saveState() {
+    history.push(canvas.toDataURL());
+    redoHistory = [];
+  }
+
+  function undo() {
+    if (!history.length) return;
+    redoHistory.push(history.pop());
+    restore();
+  }
+
+  function redo() {
+    if (!redoHistory.length) return;
+    history.push(redoHistory.pop());
+    restore();
+  }
+
+  function restore() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (history.length) {
+      const img = new Image();
+      img.src = history[history.length - 1];
+      img.onload = () => ctx.drawImage(img, 0, 0);
+    }
+    drawImages();
+    drawTexts();
+  }
+
+  // Zeichnen starten
+  canvas.addEventListener("mousedown", e => {
+    startX = e.offsetX; startY = e.offsetY; drawing = true;
+    applyPen();
+
+    if (tool === "text") {
+      selectedText = findText(e.offsetX, e.offsetY);
+      if (!selectedText) addText(e.offsetX, e.offsetY);
+      return;
+    }
+
+    if (tool === "image") {
+      selectedImage = findImage(e.offsetX, e.offsetY);
+      return;
+    }
+
+    if (["draw", "eraser"].includes(tool)) {
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      if (tool === "eraser") ctx.globalCompositeOperation = "destination-out";
+    }
+  });
+
+  canvas.addEventListener("mousemove", e => {
+    if (!drawing) return;
+    const x = e.offsetX, y = e.offsetY;
+
+    if (["draw", "eraser"].includes(tool)) {
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    if (selectedText && tool === "text") {
+      selectedText.x = x;
+      selectedText.y = y;
+      redraw();
+    }
+
+    if (selectedImage && tool === "image") {
+      selectedImage.x = x - selectedImage.width / 2;
+      selectedImage.y = y - selectedImage.height / 2;
+      redraw();
+    }
+  });
+
+  canvas.addEventListener("mouseup", e => {
+    if (tool === "eraser") ctx.globalCompositeOperation = "source-over";
+
+    if (["draw", "eraser"].includes(tool)) {
+      saveState();
+      redraw();
+    }
+
+    if (["line", "rect", "circle", "triangle"].includes(tool)) {
+      drawShape(e.offsetX, e.offsetY);
+      saveState();
+    }
+
+    drawing = false;
+    selectedText = null;
+    selectedImage = null;
+  });
+
+  function drawShape(x, y) {
+    ctx.lineWidth = parseInt(sizePicker.value, 10);
+    ctx.strokeStyle = colorPicker.value;
+    ctx.beginPath();
+    switch (tool) {
+      case "line": ctx.moveTo(startX, startY); ctx.lineTo(x, y); break;
+      case "rect": ctx.strokeRect(startX, startY, x - startX, y - startY); break;
+      case "circle":
+        const r = Math.hypot(x - startX, y - startY);
+        ctx.arc(startX, startY, r, 0, Math.PI * 2); break;
+      case "triangle":
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(x, y);
+        ctx.lineTo(startX - (x - startX), y);
+        ctx.closePath();
+        break;
+    }
+    ctx.stroke();
+  }
+
+  // Text hinzufügen
+  function addText(x, y) {
+    const t = prompt("Text eingeben:");
+    if (t) texts.push({ text: t, x, y, size: fontSize, color: colorPicker.value });
+    redraw();
+  }
+
+  function findText(x, y) {
+    return texts.find(t => x >= t.x && x <= t.x + ctx.measureText(t.text).width && y <= t.y && y >= t.y - t.size);
+  }
+
+  function findImage(x, y) {
+    return images.find(im => x >= im.x && x <= im.x + im.width && y >= im.y && y <= im.y + im.height);
+  }
+
+  // Bilder
+  window.uploadImage = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const w = Math.min(400, img.width);
+        const h = img.height * (w / img.width);
+        images.push({ img, x: 50, y: 50, width: w, height: h });
+        redraw();
+      };
+      img.src = ev.target.result;
+    };
+    r.readAsDataURL(file);
+  };
+
+  function drawTexts() {
+    texts.forEach(t => {
+      ctx.font = `${t.size}px Arial`;
+      ctx.fillStyle = t.color;
+      ctx.fillText(t.text, t.x, t.y);
+    });
+  }
+
+  function drawImages() {
+    images.forEach(im => ctx.drawImage(im.img, im.x, im.y, im.width, im.height));
+  }
+
+  function redraw() {
+    restore();
+  }
+
+  // Export PNG
+  window.saveAsPNG = function() {
+    const link = document.createElement("a");
+    link.download = "notiz.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  // Export PDF
+  window.saveAsPDF = function() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    const imgData = canvas.toDataURL("image/png");
+    const w = pdf.internal.pageSize.getWidth();
+    const h = pdf.internal.pageSize.getHeight();
+    pdf.addImage(imgData, "PNG", 10, 10, w - 20, h - 20);
+    pdf.save("notiz.pdf");
+  };
+
+  window.undo = undo;
+  window.redo = redo;
+  window.clearCanvas = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    texts = [];
+    images = [];
+    history = [];
+    redoHistory = [];
+  };
+})();
+
+
+/* Karteikarten */
+let flashcards=JSON.parse(localStorage.getItem("flashcards")||"[]"),currentIndex=0;
+function renderFlashcard(){
+  if(flashcards.length===0){
+    document.getElementById("flashcardArea").innerHTML="<em>Noch keine Karteikarten</em>";
+    return;
+  }
+  const c=flashcards[currentIndex];
+  document.getElementById("flashcardArea").innerHTML="<strong>Frage:</strong> "+c.question;
+}
+function addFlashcard(){
+  const q=document.getElementById("flashcardQuestion").value,
+        a=document.getElementById("flashcardAnswer").value;
+  if(!q||!a)return alert("Bitte Frage und Antwort");
+  flashcards.push({question:q,answer:a});
+  saveFlashcards();
+  document.getElementById("flashcardQuestion").value="";
+  document.getElementById("flashcardAnswer").value="";
+}
+function saveFlashcards(){
+  localStorage.setItem("flashcards",JSON.stringify(flashcards));
+  renderFlashcard();
+}
+function showAnswer(){
+  if(flashcards.length===0) return;
+  const c=flashcards[currentIndex];
+  document.getElementById("flashcardArea").innerHTML =
+    "<strong>Frage:</strong> "+c.question+"<br><strong>Antwort:</strong> "+c.answer;
+}
+function nextCard(){
+  if(flashcards.length===0) return;
+  currentIndex=(currentIndex+1)%flashcards.length;
+  renderFlashcard();
+}
+function prevCard(){
+  if(flashcards.length===0) return;
+  currentIndex=(currentIndex-1+flashcards.length)%flashcards.length;
+  renderFlashcard();
+}
+function deleteCard(){
+  if(flashcards.length===0) return;
+  if(confirm("Karte wirklich löschen?")){
+    flashcards.splice(currentIndex,1);
+    if(currentIndex>=flashcards.length) currentIndex=0;
+    saveFlashcards();
+  }
+}
+function editCard(){
+  if(flashcards.length===0) return;
+  const c=flashcards[currentIndex];
+  const newQ=prompt("Neue Frage:",c.question);
+  const newA=prompt("Neue Antwort:",c.answer);
+  if(newQ && newA){
+    flashcards[currentIndex]={question:newQ,answer:newA};
+    saveFlashcards();
+  }
+}
+
+// beim Laden direkt Karteikarten anzeigen
+renderFlashcard();
+</script>
+<script>
+/* ======================
+   Chat mit Verschlüsselung
+   ====================== */
+
+// dein geheimer Schlüssel
+const SECRET_KEY = "meinSuperKey123";
+
+// Nachrichten laden
+async function loadMessages() {
+  const response = await fetch("getMessages.php");
+  const data = await response.json();
+  const chatWindow = document.getElementById("chatWindow");
+  chatWindow.innerHTML = "";
+
+  data.forEach(msg => {
+    try {
+      // Entschlüsseln
+      const bytes = CryptoJS.AES.decrypt(msg.message, SECRET_KEY);
+      const originalText = bytes.toString(CryptoJS.enc.Utf8);
+
+      const div = document.createElement("div");
+      div.textContent = msg.username + ": " + originalText;
+      chatWindow.appendChild(div);
+    } catch (e) {
+      console.error("Fehler beim Entschlüsseln:", e);
+    }
+  });
+
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Nachricht senden
+async function sendMessage() {
+  const username = document.getElementById("usernameInput").value || "Anonym";
+  const message = document.getElementById("chatInput").value.trim();
+  if (!message) return;
+
+  // Verschlüsseln
+  const encrypted = CryptoJS.AES.encrypt(message, SECRET_KEY).toString();
+
+  await fetch("chat.php", {
+    method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    body: "username=" + encodeURIComponent(username) + "&message=" + encodeURIComponent(encrypted)
+  });
+
+  document.getElementById("chatInput").value = "";
+  loadMessages();
+}
+
+// alle 2 Sekunden aktualisieren
+setInterval(loadMessages, 2000);
+</script>
+</body>
+</html>

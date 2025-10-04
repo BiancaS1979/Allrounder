@@ -1,0 +1,78 @@
+body {
+  margin: 0;
+  background: black; /* Außenrum schwarz */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+#botContainer {
+  position: relative;
+  border: 2px solid white;       /* äußerer weißer Rand */
+  border-radius: 15px;           /* abgerundet */
+  padding: 12px;
+  background: black;
+  width: 500px;
+  max-width: 90%;
+}
+
+#botContainer::before {
+  content: "";
+  position: absolute;
+  top: 6px; left: 6px; right: 6px; bottom: 6px;
+  border: 2px solid magenta;     /* innerer Magenta Rand */
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+#chatHeader {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: aqua;
+  margin-bottom: 10px;
+}
+
+#chatArea {
+  background: #000;
+  padding: 10px;
+  min-height: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+#inputArea {
+  display: flex;
+  gap: 10px;
+}
+
+#userInput {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid magenta;
+  border-radius: 8px;
+  background: #111;
+  color: white;
+}
+
+button {
+  background: black;
+  border: 2px solid aqua;
+  color: white;
+  border-radius: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: magenta;
+  border-color: white;
+  color: black;
+}
