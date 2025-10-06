@@ -1,257 +1,274 @@
-// Buttons
-document.getElementById("loadGifBtn").addEventListener("click", handleGifUpload);
+// gifstudio.js – Background Removal (stabile Browser-kompatible Version)
+document.addEventListener("DOMContentLoaded", () => {
+  const canvas = document.getElementById("gifCanvas");
+  const ctx = canvas.getContext("2d");
+  const gifInput = document.getElementById("gifInput");
+  const decodeBtn = document.getElementById("decodeBtn");
+  const playBtn = document.getElementById("playBtn");
+  const rotateBtn = document.getElementById("rotateBtn");
+  const flipBtn = document.getElementById("flipBtn");
+  const saveFramesBtn = document.getElementById("saveFramesBtn");
+  const keyColorInput = document.getElementById("keyColor");
+  const tolInput = document.getElementById("tolerance");
+  const tolVal = document.getElementById("tolVal");
+  const bgImageInput = document.getElementById("bgImageInput");
+  const bgReplaceColor = document.getElementById("bgReplaceColor");
+  const previewReplaceBtn = document.getElementById("previewReplaceBtn");
+  const applyAllBtn = document.getElementById("applyAllBtn");
+  const revertBtn = document.getElementById("revertBtn");
+  const frameStrip = document.getElementById("frameStrip");
 
-// globals
-let frames = []; // raw frames from gifuct (keeps original metadata)
-let frameCanvases = []; // DOM canvases in current order
-let selectedIndex = -1;
-let startIndex = 0, endIndex = -1; // trimming (inclusive). endIndex = -1 -> end
-let markers = []; // {index,label}
+  let frames = [];
+  let originalFrames = null;
+  let currentFrame = 0;
+  let playing = false;
+  let playInterval = null;
 
-const frameContainer = document.getElementById("frameContainer");
-const selectedPreview = document.getElementById("selectedPreview");
-const previewArea = document.getElementById("previewArea");
-const previewSection = document.getElementById("previewSection");
-const downloadGifBtn = document.getElementById("downloadGifBtn");
-const speedRange = document.getElementById("speedRange");
+  async function fileToArrayBuffer(file) {
+    return await file.arrayBuffer();
+  }
 
-// load & decompose GIF
-async function handleGifUpload() {
-  const file = document.getElementById("gifInput").files[0];
-  if (!file) return alert("Bitte GIF wählen.");
-  const buffer = await file.arrayBuffer();
-  const gif = gifuct.parseGIF(buffer);
-  frames = gifuct.decompressFrames(gif, true); // frames[i].dims, .patch
-  buildFrameUI();
-}
+  async function decodeWithImageDecoder(arrayBuffer) {
+    try {
+      const decoder = new ImageDecoder({ data: arrayBuffer, type: "image/gif" });
+      await decoder.tracks.ready;
+      const track = decoder.tracks.selectedTrack;
+      if (!track || !track.frameCount) return null;
+      const out = [];
+      for (let i = 0; i < track.frameCount; i++) {
+        const res = await decoder.decode({ frameIndex: i });
+        const bmp = await createImageBitmap(res.image);
+        out.push({ bitmap: bmp, delay: res.duration || 200 });
+      }
+      return out;
+    } catch (err) {
+      console.warn("Decoder fehlgeschlagen:", err);
+      return null;
+    }
+  }
 
-// build thumbnails & per-frame tools
-function buildFrameUI() {
-  frameContainer.innerHTML = "";
-  frameCanvases = [];
-  frames.forEach((f, i) => {
-    const div = document.createElement("div");
-    div.className = "frame";
-    // canvas
-    const c = document.createElement("canvas");
-    c.width = f.dims.width; c.height = f.dims.height;
-    const ctx = c.getContext("2d");
-    const imageData = ctx.createImageData(f.dims.width, f.dims.height);
-    imageData.data.set(f.patch);
-    ctx.putImageData(imageData, 0, 0);
-    // click selects frame
-    c.addEventListener("click", () => selectFrame(i));
-    // tools
-    const tools = document.createElement("div");
-    tools.className = "tool-buttons";
-    tools.innerHTML = `
-      <button onclick="selectFrame(${i})">🔎</button>
-      <button onclick="rotateFrame(${i},90)">↻</button>
-      <button onclick="flipFrame(${i},'h')">↔</button>
-      <button onclick="flipFrame(${i},'v')">↕</button>
-      <button onclick="saveFrame(${i})">💾</button>
-      <button onclick="deleteFrame(${i})">❌</button>
-    `;
-    div.appendChild(c);
-    div.appendChild(tools);
-    frameContainer.appendChild(div);
-    frameCanvases.push(c);
-  });
+  async function decodeArrayBuffer(arrayBuffer) {
+    const res = await decodeWithImageDecoder(arrayBuffer);
+    if (!res || !res.length) throw new Error("Konnte GIF nicht zerlegen.");
+    return res;
+  }
 
-  // reset trim indexes
-  startIndex = 0;
-  endIndex = frameCanvases.length - 1;
-  selectedIndex = -1;
-  markers = [];
-  renderMarkerList();
-  enableFrameSorting();
-}
-
-// selection
-function selectFrame(i) {
-  selectedIndex = i;
-  // draw to small preview canvas (scale)
-  const c = frameCanvases[i];
-  const sp = selectedPreview;
-  sp.width = Math.min(320, c.width);
-  sp.height = Math.min(240, c.height);
-  const sctx = sp.getContext("2d");
-  sctx.clearRect(0,0,sp.width,sp.height);
-  // draw scaled maintaining aspect
-  const ratio = Math.min(sp.width / c.width, sp.height / c.height);
-  const dw = c.width * ratio, dh = c.height * ratio;
-  sctx.drawImage(c, 0, 0, c.width, c.height, (sp.width-dw)/2, (sp.height-dh)/2, dw, dh);
-
-  // show set start/end quick hints
-  document.getElementById("setStartBtn").onclick = () => { startIndex = selectedIndex; alert("Start gesetzt: " + startIndex); }
-  document.getElementById("setEndBtn").onclick = () => { endIndex = selectedIndex; alert("Ende gesetzt: " + endIndex); }
-  document.getElementById("rotateBtn").onclick = () => { rotateFrame(selectedIndex,90); selectFrame(selectedIndex); }
-  document.getElementById("flipHBtn").onclick = () => { flipFrame(selectedIndex,'h'); selectFrame(selectedIndex); }
-  document.getElementById("flipVBtn").onclick = () => { flipFrame(selectedIndex,'v'); selectFrame(selectedIndex); }
-  document.getElementById("saveFrameBtn").onclick = () => saveFrame(selectedIndex);
-  document.getElementById("delFrameBtn").onclick = () => { deleteFrame(selectedIndex); selectedIndex = -1; }
-}
-
-// frame operations
-function rotateFrame(i,deg){
-  const c = frameCanvases[i];
-  const tmp = document.createElement("canvas");
-  tmp.width = c.width; tmp.height = c.height;
-  tmp.getContext("2d").drawImage(c,0,0);
-  const angle = (deg * Math.PI)/180;
-  // swap dims
-  c.width = tmp.height; c.height = tmp.width;
-  const ctx = c.getContext("2d");
-  ctx.save();
-  ctx.translate(c.width/2, c.height/2);
-  ctx.rotate(angle);
-  ctx.drawImage(tmp, -tmp.width/2, -tmp.height/2);
-  ctx.restore();
-}
-function flipFrame(i,dir){
-  const c = frameCanvases[i];
-  const tmp = document.createElement("canvas");
-  tmp.width = c.width; tmp.height = c.height;
-  tmp.getContext("2d").drawImage(c,0,0);
-  const ctx = c.getContext("2d");
-  ctx.clearRect(0,0,c.width,c.height);
-  ctx.save();
-  if(dir==='h'){ ctx.scale(-1,1); ctx.drawImage(tmp,-c.width,0); }
-  else { ctx.scale(1,-1); ctx.drawImage(tmp,0,-c.height); }
-  ctx.restore();
-}
-function saveFrame(i){
-  const c = frameCanvases[i];
-  const a = document.createElement("a");
-  a.href = c.toDataURL("image/png");
-  a.download = `frame_${i+1}.png`;
-  a.click();
-}
-function deleteFrame(i){
-  const nodes = Array.from(document.querySelectorAll(".frame"));
-  if(!nodes[i]) return;
-  nodes[i].remove();
-  // remove from canvases array
-  frameCanvases.splice(i,1);
-  frames.splice(i,1);
-  // rebuild indexes by re-binding click handlers
-  rebuildCanvasBindings();
-  // adjust trim indexes
-  if(endIndex >= frameCanvases.length) endIndex = frameCanvases.length-1;
-  if(startIndex >= frameCanvases.length) startIndex = 0;
-  renderMarkerList();
-}
-
-// rebuild binding after reorder/delete
-function rebuildCanvasBindings(){
-  const canv = document.querySelectorAll(".frame canvas");
-  frameCanvases = Array.from(canv);
-  frameCanvases.forEach((c, idx) => {
-    c.onclick = () => selectFrame(idx);
-  });
-}
-
-// Sortable (drag & drop)
-function enableFrameSorting(){
-  Sortable.create(frameContainer, {
-    animation:150,
-    ghostClass:'dragging',
-    onEnd: function(evt){
-      // reorder frameCanvases array to match DOM
-      rebuildCanvasBindings();
-      // update markers to refer to new order: (simpler approach) clear markers
-      markers = markers.map(m => ({...m, index: Math.max(0, Math.min(frameCanvases.length-1, m.index))}));
-      renderMarkerList();
+  decodeBtn.addEventListener("click", async () => {
+    const file = gifInput.files[0];
+    if (!file) return alert("Bitte ein GIF auswählen.");
+    try {
+      const ab = await fileToArrayBuffer(file);
+      frames = await decodeArrayBuffer(ab);
+      originalFrames = frames.map(f => ({ bitmap: f.bitmap, delay: f.delay }));
+      currentFrame = 0;
+      renderCurrent();
+      renderStrip();
+    } catch (err) {
+      console.error(err);
+      alert("Fehler beim Zerlegen – siehe Konsole.");
     }
   });
-}
 
-// Trim helpers
-function resetTrim(){
-  startIndex = 0;
-  endIndex = frameCanvases.length - 1;
-  alert("Trim zurückgesetzt");
-}
-
-// markers
-document.getElementById("addMarkerBtn").addEventListener("click", ()=>{
-  const label = document.getElementById("markerLabel").value.trim() || ("Marker " + (markers.length+1));
-  if(selectedIndex < 0){ alert("Wähle erst ein Frame aus"); return; }
-  markers.push({index:selectedIndex, label});
-  renderMarkerList();
-});
-function renderMarkerList(){
-  const ul = document.getElementById("markerList");
-  ul.innerHTML = "";
-  markers.forEach((m,i)=>{
-    const li = document.createElement("li");
-    li.textContent = `#${i+1} - Frame ${m.index} : ${m.label}`;
-    const jump = document.createElement("button"); jump.textContent = "▶"; jump.onclick = ()=> { selectFrame(m.index); };
-    const del = document.createElement("button"); del.textContent = "✖"; del.onclick = ()=> { markers.splice(i,1); renderMarkerList(); };
-    li.appendChild(jump); li.appendChild(del);
-    ul.appendChild(li);
-  });
-}
-
-// generate GIF using current frame order and trim range
-function generateGif(){
-  const canvases = Array.from(document.querySelectorAll(".frame canvas"));
-  if(canvases.length === 0) return alert("Keine Frames vorhanden!");
-  const s = Math.max(0, Math.min(startIndex, canvases.length-1));
-  const e = (endIndex === -1) ? canvases.length-1 : Math.max(0, Math.min(endIndex, canvases.length-1));
-  if(s > e) return alert("Ungültiger Trim: Start > Ende");
-  const gif = new GIF({workers:2, quality:10, width: canvases[0].width, height: canvases[0].height});
-  for(let i=s;i<=e;i++){
-    gif.addFrame(canvases[i], {delay: 100});
+  function renderCurrent() {
+    if (!frames.length) return;
+    const img = frames[currentFrame].bitmap;
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
   }
-  gif.on("finished", blob => {
-    const url = URL.createObjectURL(blob);
-    previewArea.innerHTML = "";
-    const img = document.createElement("img"); img.src = url;
-    previewArea.appendChild(img);
-    previewSection.style.display = "block";
-    downloadGifBtn.style.display = "inline-block";
-    downloadGifBtn.onclick = ()=> {
-      const a = document.createElement("a"); a.href = url; a.download = "trimmed.gif"; a.click();
-    };
+
+  function renderStrip() {
+    frameStrip.innerHTML = "";
+    frames.forEach((f, i) => {
+      const c = document.createElement("canvas");
+      c.width = 60;
+      c.height = 60;
+      const cx = c.getContext("2d");
+      const scale = Math.min(c.width / f.bitmap.width, c.height / f.bitmap.height);
+      const dw = f.bitmap.width * scale;
+      const dh = f.bitmap.height * scale;
+      cx.drawImage(f.bitmap, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+      const img = document.createElement("img");
+      img.src = c.toDataURL();
+      img.title = `Frame ${i + 1}`;
+      img.onclick = () => {
+        currentFrame = i;
+        renderCurrent();
+      };
+      frameStrip.appendChild(img);
+    });
+  }
+
+  playBtn.addEventListener("click", () => {
+    if (!frames.length) return;
+    if (playing) {
+      clearInterval(playInterval);
+      playing = false;
+    } else {
+      playing = true;
+      playInterval = setInterval(() => {
+        currentFrame = (currentFrame + 1) % frames.length;
+        renderCurrent();
+      }, frames[currentFrame]?.delay || 200);
+    }
   });
-  gif.render();
-}
 
-// play preview only range
-let playInterval = null, playing=false, currentFrame=0;
-function playPreview(){
-  const canvases = Array.from(document.querySelectorAll(".frame canvas"));
-  if(canvases.length===0) return alert("Keine Frames geladen!");
-  const s = Math.max(0, Math.min(startIndex, canvases.length-1));
-  const e = (endIndex===-1) ? canvases.length-1 : Math.max(0, Math.min(endIndex, canvases.length-1));
-  if(s>e) return alert("Ungültiger Trim (s>e)");
-  const previewImg = document.createElement("img");
-  previewArea.innerHTML = ""; previewArea.appendChild(previewImg); previewSection.style.display = "block";
+  rotateBtn.addEventListener("click", rotateAll);
+  flipBtn.addEventListener("click", flipAll);
 
-  if(playing){ clearInterval(playInterval); playing=false; return; }
-  playing=true; currentFrame=s;
-  const delay = parseInt(speedRange.value,10) || 120;
-  playInterval = setInterval(()=>{
-    const idx = currentFrame;
-    previewImg.src = canvases[idx].toDataURL();
-    currentFrame++; if(currentFrame>e) currentFrame=s;
-  }, delay);
-}
+  async function rotateAll() {
+    frames = await Promise.all(
+      frames.map(async f => {
+        const tmp = document.createElement("canvas");
+        tmp.width = f.bitmap.height;
+        tmp.height = f.bitmap.width;
+        const tctx = tmp.getContext("2d");
+        tctx.translate(tmp.width / 2, tmp.height / 2);
+        tctx.rotate(Math.PI / 2);
+        tctx.drawImage(f.bitmap, -f.bitmap.width / 2, -f.bitmap.height / 2);
+        return { bitmap: await createImageBitmap(tmp), delay: f.delay };
+      })
+    );
+    currentFrame = 0;
+    renderCurrent();
+    renderStrip();
+  }
 
-// frame-level save/delete handlers attached above already (saveFrame/deleteFrame)
+  async function flipAll() {
+    frames = await Promise.all(
+      frames.map(async f => {
+        const tmp = document.createElement("canvas");
+        tmp.width = f.bitmap.width;
+        tmp.height = f.bitmap.height;
+        const tctx = tmp.getContext("2d");
+        tctx.translate(tmp.width, 0);
+        tctx.scale(-1, 1);
+        tctx.drawImage(f.bitmap, 0, 0);
+        return { bitmap: await createImageBitmap(tmp), delay: f.delay };
+      })
+    );
+    currentFrame = 0;
+    renderCurrent();
+    renderStrip();
+  }
 
-// small utility: rotateAll/flipAll on all canvases
-function rotateAll(deg){ document.querySelectorAll(".frame canvas").forEach((_,i) => rotateFrame(i,deg)); }
-function flipAll(dir){ document.querySelectorAll(".frame canvas").forEach((_,i) => flipFrame(i,dir)); }
+  saveFramesBtn.addEventListener("click", async () => {
+    for (let i = 0; i < frames.length; i++) {
+      const c = document.createElement("canvas");
+      c.width = frames[i].bitmap.width;
+      c.height = frames[i].bitmap.height;
+      c.getContext("2d").drawImage(frames[i].bitmap, 0, 0);
+      const link = document.createElement("a");
+      link.href = c.toDataURL("image/png");
+      link.download = `frame_${i + 1}.png`;
+      link.click();
+    }
+  });
 
-// expose some functions to global scope (buttons inline rely on them)
-window.rotateFrame = rotateFrame;
-window.flipFrame = flipFrame;
-window.saveFrame = saveFrame;
-window.deleteFrame = deleteFrame;
-window.rotateAll = rotateAll;
-window.flipAll = flipAll;
-window.generateGif = generateGif;
-window.playPreview = playPreview;
-window.resetTrim = resetTrim;
+  // 🔹 Hintergrundbearbeitung
+  function hexToRgb(hex) {
+    const h = hex.replace("#", "");
+    return {
+      r: parseInt(h.substr(0, 2), 16),
+      g: parseInt(h.substr(2, 2), 16),
+      b: parseInt(h.substr(4, 2), 16)
+    };
+  }
+
+  function colorDist(a, b) {
+    return Math.sqrt(
+      Math.pow(a.r - b.r, 2) + Math.pow(a.g - b.g, 2) + Math.pow(a.b - b.b, 2)
+    );
+  }
+
+  async function removeBackground(bitmap, keyColor, tolerance) {
+    const c = document.createElement("canvas");
+    c.width = bitmap.width;
+    c.height = bitmap.height;
+    const cx = c.getContext("2d");
+    cx.drawImage(bitmap, 0, 0);
+    const img = cx.getImageData(0, 0, c.width, c.height);
+    const data = img.data;
+    const key = hexToRgb(keyColor);
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i],
+        g = data[i + 1],
+        b = data[i + 2];
+      const dist = colorDist({ r, g, b }, key);
+      if (dist < tolerance) data[i + 3] = 0;
+    }
+    cx.putImageData(img, 0, 0);
+    return await createImageBitmap(c);
+  }
+
+  async function applyBackground(bitmap, bgColor, bgImg) {
+    const c = document.createElement("canvas");
+    c.width = bitmap.width;
+    c.height = bitmap.height;
+    const cx = c.getContext("2d");
+    if (bgImg) {
+      cx.drawImage(bgImg, 0, 0, c.width, c.height);
+    } else {
+      cx.fillStyle = bgColor;
+      cx.fillRect(0, 0, c.width, c.height);
+    }
+    cx.drawImage(bitmap, 0, 0);
+    return await createImageBitmap(c);
+  }
+
+  previewReplaceBtn.addEventListener("click", async () => {
+    if (!frames.length) return alert("Erst ein GIF laden.");
+    const key = keyColorInput.value;
+    const tol = parseInt(tolInput.value);
+    const bgCol = bgReplaceColor.value;
+
+    let bgImg = null;
+    if (bgImageInput.files[0]) {
+      const file = bgImageInput.files[0];
+      bgImg = await createImageBitmap(file);
+    }
+
+    const removed = await removeBackground(frames[currentFrame].bitmap, key, tol);
+    const merged = await applyBackground(removed, bgCol, bgImg);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = merged.width;
+    canvas.height = merged.height;
+    ctx.drawImage(merged, 0, 0);
+  });
+
+  applyAllBtn.addEventListener("click", async () => {
+    if (!frames.length) return alert("Erst zerlegen.");
+    const key = keyColorInput.value;
+    const tol = parseInt(tolInput.value);
+    const bgCol = bgReplaceColor.value;
+
+    let bgImg = null;
+    if (bgImageInput.files[0]) {
+      const file = bgImageInput.files[0];
+      bgImg = await createImageBitmap(file);
+    }
+
+    frames = await Promise.all(
+      frames.map(async f => {
+        const removed = await removeBackground(f.bitmap, key, tol);
+        const merged = await applyBackground(removed, bgCol, bgImg);
+        return { bitmap: merged, delay: f.delay };
+      })
+    );
+    currentFrame = 0;
+    renderCurrent();
+    renderStrip();
+  });
+
+  revertBtn.addEventListener("click", () => {
+    if (!originalFrames) return;
+    frames = originalFrames.map(f => ({ bitmap: f.bitmap, delay: f.delay }));
+    currentFrame = 0;
+    renderCurrent();
+    renderStrip();
+  });
+
+  tolInput.addEventListener("input", () => (tolVal.textContent = tolInput.value));
+});
