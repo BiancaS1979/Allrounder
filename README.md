@@ -1,10 +1,12 @@
-Ein "All-in-One-Tool": Kalender, Uhr und Timer, To-Do-Liste, Bildergalerie, Chat (lokal), Taschenrechner, Notizblock, Spielemenü mit Spielen, Karteikarten, Chatbot "Missy" (aktuell ohne GPT-API --> lokal) und ein GIF-Studio zum Bearbeiten von GIFs
+Ein "All-in-One-Tool": Kalender, Uhr und Timer, To-Do-Liste, Bildergalerie, Chat (lokal), Taschenrechner, Notizblock, Spielemenü mit Spielen, Karteikarten, Chatbot "Missy" (aktuell ohne GPT-API --> lokal) und ein GIF-Studio zum Bearbeiten von GIFs 
+--------------------------------------- 
+
 Der Kalender, Uhr/Timer, To-do-Liste, Bildergalerie, Chat, Taschenrechner, Spielemenü mit Spielen, Karteikarten und der Chatbot sind meiner Meinung einfach in der Handhabung und der Notizblock dürfte auch einfach zu bedienen sein. 
 Beim Gifstudio ist es wichtig das man zuerst ein Gif auswählt, dann auf Zerlegen klickt. Dann werden sie eine Vorschau vom ersten Frame sehen und darunter alle Einzelframes.Diese können sie drehen und spiegeln. Hintergrund entfernen basiert hier auf
 einem Farbraumaustausch. Sie wählen die Schlüsselfarbe aus (aktuelle Hintergrundfarbe die sie entfernen möchtem), schieben die Toleranz am besten komplett hoch und klicken auf Hintergrund entfernen. Diesen können sie dann durch eine andere Farbe oder 
 ein Hintergrundbild ersetzen. Aktuell versuche ich noch eine Exportfunktion einzubauen falls man mal die Gifanimation in der neuen Optik exportieren möchte. 
-
+----------------------------------------- 
 An all-in-one tool: calendar, clock and timer, to-do list, image gallery, chat (local), calculator, notepad, game menu with games, flashcards, chatbot "Missy" (currently without GPT API --> local), and a GIF Studio for editing GIFs.
+-----------------------------------------  
 The calendar, clock/timer, to-do list, image gallery, chat, calculator, game menu with games, flashcards, and the chatbot are, in my opinion, easy to use, and the notepad should be easy to use as well.
-With the GIF Studio, it's important to first select a GIF, then click "Disassemble." You will then see a preview of the first frame and all the individual frames below. You can rotate and mirror these. Removing the background is based on a color space swap. Select the key color (the current background color you want to remove), increase the tolerance to the maximum, and click "Remove background." You can then replace this with a different color or
-a background image.  I'm currently trying to add an export function in case you want to export the gif animation with the new look.
+With the GIF Studio, it's important to first select a GIF, then click "Disassemble." You will then see a preview of the first frame and all the individual frames below. You can rotate and mirror these. Removing the background is based on a color space swap. Select the key color (the current background color you want to remove), increase the tolerance to the maximum, and click "Remove background." You can then replace this with a different color or a background image.  I'm currently trying to add an export function in case you want to export the gif animation with the new look.
