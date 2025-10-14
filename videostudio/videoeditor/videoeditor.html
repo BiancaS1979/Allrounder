@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video-Editor – Magenta & Aqua Edition</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎥 Video-Editor</h1>
+    <button id="backBtn" onclick="window.location.href='../videostudio.html'">⬅ Zurück</button>
+  </header>
+
+  <main>
+    <div class="video-wrapper">
+      <video id="videoPlayer" controls></video>
+      <canvas id="transitionCanvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <input type="file" id="videoUpload" accept="video/*" multiple>
+      <button id="addClipsBtn">Clips hinzufügen</button>
+      <button id="playAllBtn">▶️ Alles abspielen</button>
+    </div>
+
+    <div id="timeline"></div>
+
+
+  <footer>© 2025 Video-Studio | Magenta & Aqua Edition</footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

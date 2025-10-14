@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Streaming-Box – Magenta & Aqua</title>
+  <link rel="stylesheet" href="streamingbox.css" />
+</head>
+<body>
+  <canvas id="galaxyCanvas"></canvas>
+
+  <header>
+    <h1>📡 Streaming-Box – Magenta & Aqua</h1>
+    <button id="backBtn" onclick="window.location.href='../videostudio.html'">⬅ Zurück</button>
+  </header>
+
+  <main>
+    <div id="stage">
+      <video id="captureFeed" autoplay muted playsinline></video>
+      <div id="pipWrapper">
+        <video id="webcamFeed" autoplay muted playsinline></video>
+        <div class="pipHandle">≡</div>
+      </div>
+    </div>
+
+    <div id="controls">
+      <button class="ctl" id="startCaptureBtn">🎮 Capture Start</button>
+      <button class="ctl" id="stopCaptureBtn" disabled>⏹ Capture Stop</button>
+      <button class="ctl" id="startWebcamBtn">📷 Webcam Start</button>
+      <button class="ctl" id="stopWebcamBtn" disabled>⏹ Webcam Stop</button>
+    </div>
+
+    <section id="soundboard">
+      <h3>🎧 Soundboard</h3>
+      <div class="sound-buttons">
+        <button class="snd" data-src="sounds/hoho.mp3">🎅 Ho Ho Ho</button>
+        <button class="snd" data-src="sounds/spooky.mp3">👻 Spooky</button>
+        <button class="snd" data-src="sounds/bday.mp3">🎂 Birthday</button>
+        <audio id="audioElement" style="display: none;"controls autoplay>
+          <source id="soundSource" src="" type="audio/mpeg">
+        </audio>
+      </div>
+      <div class="custom-add">
+        <input type="file" id="customSoundFile" accept="audio/*">
+        <button id="addCustom">➕ Hinzufügen</button>
+      </div>
+      <div id="customList"></div>
+    </section>
+
+
+  </main>
+
+  <footer>© 2025 Streaming-Box – Magenta & Aqua</footer>
+  <script src="streamingbox.js"></script>
+</body>
+</html>
