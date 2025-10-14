@@ -1,0 +1,55 @@
+:root {
+  --main1: magenta;
+  --main2: aqua;
+  --text: white;
+  --bg: black;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: linear-gradient(90deg, var(--main1), var(--main2));
+  color: black;
+  padding: 1rem;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.menu {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.menu button {
+  background: black;
+  color: var(--text);
+  border: 2px solid var(--main2);
+  border-radius: 12px;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+}
+
+.menu button:hover {
+  background: var(--main1);
+  color: black;
+}
+
+footer {
+  border-top: 2px solid var(--main1);
+  padding: 1rem;
+  margin-top: 3rem;
+  font-size: 0.9rem;
+  color: var(--main2);
+}
