@@ -1,0 +1,1 @@
+An "All in one Tool": Calendar, Clock and Timer, to-do-list, Picture Gallery, Chat (local), Calculator, Notepad, Game-Menue with Games, index cards, Chatbot "Missy" (actually without GPT-Api --> local), a GIF-Studio to edit GIFs and a Videostudio to edit Videos / a Streaming-box with a Soundboard 
